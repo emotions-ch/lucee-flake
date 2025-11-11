@@ -11,182 +11,182 @@
   let
     pkgs = nixpkgs.legacyPackages.${system};
 
-        # Lucee JAR
-        lucee-jar = pkgs.stdenv.mkDerivation {
-          name = "lucee-5.3.6.61.jar";
-          src = pkgs.fetchurl {
-            url = "https://cdn.lucee.org/lucee-5.3.6.61.jar";
-            sha256 = "sha256-n4ok9YgOhH7+3V45VZMgvxuoqfLfrpEDfZwWTTMBZ3g=";
-          };
-          dontUnpack = true;
-          installPhase = ''
-            mkdir -p $out
-            cp $src $out/lucee.jar
-          '';
-        };
+    # Lucee JAR
+    lucee-jar = pkgs.stdenv.mkDerivation {
+      name = "lucee-5.3.6.61.jar";
+      src = pkgs.fetchurl {
+        url = "https://cdn.lucee.org/lucee-5.3.6.61.jar";
+        sha256 = "sha256-n4ok9YgOhH7+3V45VZMgvxuoqfLfrpEDfZwWTTMBZ3g=";
+      };
+      dontUnpack = true;
+      installPhase = ''
+        mkdir -p $out
+        cp $src $out/lucee.jar
+      '';
+    };
 
-        # Custom Tomcat with Lucee
-        tomcat-lucee = pkgs.tomcat9.overrideAttrs (oldAttrs: {
-          postInstall = (oldAttrs.postInstall or "") + ''
-            # Copy Lucee JAR to lib folder
-            cp ${lucee-jar}/lucee.jar $out/lib/
+    # Custom Tomcat with Lucee
+    tomcat-lucee = pkgs.tomcat9.overrideAttrs (oldAttrs: {
+      postInstall = (oldAttrs.postInstall or "") + ''
+        # Copy Lucee JAR to lib folder
+        cp ${lucee-jar}/lucee.jar $out/lib/
 
-            # Copy Tomcat server configuration (from ./server.xml)
-            cp ${./server.xml} $out/conf/server.xml
-          '';
-        });
+        # Copy Tomcat server configuration (from ./server.xml)
+        cp ${./server.xml} $out/conf/server.xml
+      '';
+    });
 
-        # Startup script
-        startScript = pkgs.writeShellScriptBin "start-lucee" ''
-          export CATALINA_HOME=${tomcat-lucee}
-          export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
-          export JAVA_HOME=${pkgs.openjdk11}
+    # Startup script
+    startScript = pkgs.writeShellScriptBin "start-lucee" ''
+      export CATALINA_HOME=${tomcat-lucee}
+      export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
+      export JAVA_HOME=${pkgs.openjdk11}
 
-          # Ensure Lucee JAR is in classpath by using local lib directory
-          export CLASSPATH="$CATALINA_BASE/lib/*:$CATALINA_HOME/lib/*"
+      # Ensure Lucee JAR is in classpath by using local lib directory
+      export CLASSPATH="$CATALINA_BASE/lib/*:$CATALINA_HOME/lib/*"
 
-          # Initialize Catalina base if server.xml doesn't exist
-          if [ ! -f "$CATALINA_BASE/conf/server.xml" ]; then
-            init-lucee
-          else
-            echo "Using existing Lucee instance at $CATALINA_BASE"
-          fi
+      # Initialize Catalina base if server.xml doesn't exist
+      if [ ! -f "$CATALINA_BASE/conf/server.xml" ]; then
+        init-lucee
+      else
+        echo "Using existing Lucee instance at $CATALINA_BASE"
+      fi
 
-          echo "Starting Lucee with Tomcat..."
-          echo "🌐 Main site: http://localhost:8080"
-          echo "🌐 Example site: http://localhost:8080 (with Host header: example.com)"
-          echo "📁 Instance directory: $CATALINA_BASE"
-          echo "Press Ctrl+C to stop"
+      echo "Starting Lucee with Tomcat..."
+      echo "🌐 Main site: http://localhost:8080"
+      echo "🌐 Example site: http://localhost:8080 (with Host header: example.com)"
+      echo "📁 Instance directory: $CATALINA_BASE"
+      echo "Press Ctrl+C to stop"
 
-          exec ${tomcat-lucee}/bin/catalina.sh run
-        '';
+      exec ${tomcat-lucee}/bin/catalina.sh run
+    '';
 
-        # Stop script
-        stopScript = pkgs.writeShellScriptBin "stop-lucee" ''
-          export CATALINA_HOME=${tomcat-lucee}
-          export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
+    # Stop script
+    stopScript = pkgs.writeShellScriptBin "stop-lucee" ''
+      export CATALINA_HOME=${tomcat-lucee}
+      export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
 
-          if [ -f "$CATALINA_BASE/logs/catalina.pid" ]; then
-            echo "Stopping Lucee Tomcat instance..."
-            ${tomcat-lucee}/bin/catalina.sh stop
-          else
-            echo "No running Lucee instance found"
-          fi
-        '';
+      if [ -f "$CATALINA_BASE/logs/catalina.pid" ]; then
+        echo "Stopping Lucee Tomcat instance..."
+        ${tomcat-lucee}/bin/catalina.sh stop
+      else
+        echo "No running Lucee instance found"
+      fi
+    '';
 
-        # Init script (initialize without starting)
-        initScript = pkgs.writeShellScriptBin "init-lucee" ''
-          export CATALINA_HOME=${tomcat-lucee}
-          export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
+    # Init script (initialize without starting)
+    initScript = pkgs.writeShellScriptBin "init-lucee" ''
+      export CATALINA_HOME=${tomcat-lucee}
+      export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
 
-          # Initialize Catalina base if server.xml doesn't exist
-          if [ ! -f "$CATALINA_BASE/conf/server.xml" ]; then
-            echo "Initializing Lucee instance directory at $CATALINA_BASE"
+      # Initialize Catalina base if server.xml doesn't exist
+      if [ ! -f "$CATALINA_BASE/conf/server.xml" ]; then
+        echo "Initializing Lucee instance directory at $CATALINA_BASE"
 
-            # Create directory structure
-            mkdir -p "$CATALINA_BASE"/{conf,logs,temp,work,webapps,lib}
+        # Create directory structure
+        mkdir -p "$CATALINA_BASE"/{conf,logs,temp,work,webapps,lib}
 
-            # Copy configuration files
-            cp -r ${tomcat-lucee}/conf/* "$CATALINA_BASE/conf/"
+        # Copy configuration files
+        cp -r ${tomcat-lucee}/conf/* "$CATALINA_BASE/conf/"
 
-            # Copy Tomcat lib files and add Lucee JAR
-            cp -r ${tomcat-lucee}/lib/* "$CATALINA_BASE/lib/"
-            cp ${lucee-jar}/lucee.jar "$CATALINA_BASE/lib/"
+        # Copy Tomcat lib files and add Lucee JAR
+        cp -r ${tomcat-lucee}/lib/* "$CATALINA_BASE/lib/"
+        cp ${lucee-jar}/lucee.jar "$CATALINA_BASE/lib/"
 
-            # Create Lucee server and web directories
-            mkdir -p "$CATALINA_BASE/lucee-server"
-            mkdir -p "$CATALINA_BASE/lucee-web"
+        # Create Lucee server and web directories
+        mkdir -p "$CATALINA_BASE/lucee-server"
+        mkdir -p "$CATALINA_BASE/lucee-web"
 
-            # Create ROOT webapp with Lucee configuration
-            mkdir -p "$CATALINA_BASE/webapps/ROOT/WEB-INF"
+        # Create ROOT webapp with Lucee configuration
+        mkdir -p "$CATALINA_BASE/webapps/ROOT/WEB-INF"
 
-            # Process web.xml template with correct paths
-            sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
-                -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
-                ${./web.xml} > "$CATALINA_BASE/webapps/ROOT/WEB-INF/web.xml"
+        # Process web.xml template with correct paths
+        sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
+            -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
+            ${./web.xml} > "$CATALINA_BASE/webapps/ROOT/WEB-INF/web.xml"
 
-            # Create example.com webapp with Lucee configuration
-            mkdir -p "$CATALINA_BASE/webapps/example.com/WEB-INF"
+        # Create example.com webapp with Lucee configuration
+        mkdir -p "$CATALINA_BASE/webapps/example.com/WEB-INF"
 
-            # Process web.xml template with correct paths for example.com
-            sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
-                -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
-                ${./web.xml} > "$CATALINA_BASE/webapps/example.com/WEB-INF/web.xml"
+        # Process web.xml template with correct paths for example.com
+        sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
+            -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
+            ${./web.xml} > "$CATALINA_BASE/webapps/example.com/WEB-INF/web.xml"
 
-            # Set proper permissions
-            chmod -R u+w "$CATALINA_BASE"
+        # Set proper permissions
+        chmod -R u+w "$CATALINA_BASE"
 
-            echo "✅ Lucee instance initialized successfully at $CATALINA_BASE"
-            echo ""
-            echo "You can now:"
-            echo "  - Add CFML files to $CATALINA_BASE/webapps/ROOT/"
-            echo "  - Start the server with: start-lucee"
-            echo "  - Modify configuration in $CATALINA_BASE/conf/"
-          else
-            echo "Lucee instance already exists at $CATALINA_BASE"
-            echo "Use 'start-lucee' to start the server"
-          fi
-        '';
+        echo "✅ Lucee instance initialized successfully at $CATALINA_BASE"
+        echo ""
+        echo "You can now:"
+        echo "  - Add CFML files to $CATALINA_BASE/webapps/ROOT/"
+        echo "  - Start the server with: start-lucee"
+        echo "  - Modify configuration in $CATALINA_BASE/conf/"
+      else
+        echo "Lucee instance already exists at $CATALINA_BASE"
+        echo "Use 'start-lucee' to start the server"
+      fi
+    '';
 
-        # Development shell
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            tomcat-lucee
-            openjdk11
-            startScript
-            stopScript
-            initScript
-            zsh
-          ];
+    # Development shell
+    devShell = pkgs.mkShell {
+      buildInputs = with pkgs; [
+        tomcat-lucee
+        openjdk11
+        startScript
+        stopScript
+        initScript
+        zsh
+      ];
 
-          shellHook = ''
-            echo "🚀 Lucee + Tomcat development environment ready!"
-            echo ""
-            echo "Available commands:"
-            echo "  init-lucee     - Initialize Lucee instance directory"
-            echo "  start-lucee    - Start Lucee with Tomcat"
-            echo "  stop-lucee     - Stop Lucee Tomcat instance"
-            echo ""
-            echo "Configuration:"
-            echo "  Tomcat home: ${tomcat-lucee}"
-            echo "  Java home: ${pkgs.openjdk11}"
-            echo ""
-            echo "Quick start: init-lucee && start-lucee"
-            exec zsh
-          '';
-        };
+      shellHook = ''
+        echo "🚀 Lucee + Tomcat development environment ready!"
+        echo ""
+        echo "Available commands:"
+        echo "  init-lucee     - Initialize Lucee instance directory"
+        echo "  start-lucee    - Start Lucee with Tomcat"
+        echo "  stop-lucee     - Stop Lucee Tomcat instance"
+        echo ""
+        echo "Configuration:"
+        echo "  Tomcat home: ${tomcat-lucee}"
+        echo "  Java home: ${pkgs.openjdk11}"
+        echo ""
+        echo "Quick start: init-lucee && start-lucee"
+        exec zsh
+      '';
+    };
 
-      in {
-        packages = {
-          inherit lucee-jar tomcat-lucee;
-          default = tomcat-lucee;
-          init-lucee = initScript;
-          start-lucee = startScript;
-          stop-lucee = stopScript;
-        };
+  in {
+    packages = {
+      inherit lucee-jar tomcat-lucee;
+      default = tomcat-lucee;
+      init-lucee = initScript;
+      start-lucee = startScript;
+      stop-lucee = stopScript;
+    };
 
-        devShells.default = devShell;
+    devShells.default = devShell;
 
-        apps = {
-          default = {
-            type = "app";
-            program = "${startScript}/bin/start-lucee";
-          };
+    apps = {
+      default = {
+        type = "app";
+        program = "${startScript}/bin/start-lucee";
+      };
 
-          init = {
-            type = "app";
-            program = "${initScript}/bin/init-lucee";
-          };
+      init = {
+        type = "app";
+        program = "${initScript}/bin/init-lucee";
+      };
 
-          start = {
-            type = "app";
-            program = "${startScript}/bin/start-lucee";
-          };
+      start = {
+        type = "app";
+        program = "${startScript}/bin/start-lucee";
+      };
 
-          stop = {
-            type = "app";
-            program = "${stopScript}/bin/stop-lucee";
-          };
-        };
-      });
-    }
+      stop = {
+        type = "app";
+        program = "${stopScript}/bin/stop-lucee";
+      };
+    };
+  });
+}
