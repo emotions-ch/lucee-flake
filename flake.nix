@@ -33,18 +33,6 @@
             
             # Copy Tomcat server configuration (from ./server.xml)
             cp ${./server.xml} $out/conf/server.xml
-            
-            # Create ROOT webapp directory structure with Lucee configuration
-            mkdir -p $out/webapps/ROOT/WEB-INF
-            
-            # Copy Lucee web.xml configuration for ROOT webapp (from ./web.xml)
-            cp ${./web.xml} $out/webapps/ROOT/WEB-INF/web.xml
-
-            # Create example webapp directory structure
-            mkdir -p $out/webapps/example.com/WEB-INF
-            
-            # Copy Lucee web.xml configuration for example.com webapp (from ./web.xml)
-            cp ${./web.xml} $out/webapps/example.com/WEB-INF/web.xml
           '';
         });
 
@@ -54,14 +42,40 @@
           export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
           export JAVA_HOME=${pkgs.openjdk11}
           
+          # Ensure Lucee JAR is in classpath by using local lib directory
+          export CLASSPATH="$CATALINA_BASE/lib/*:$CATALINA_HOME/lib/*"
+          
           # Create base directory if it doesn't exist
           if [ ! -d "$CATALINA_BASE" ]; then
             echo "Creating Lucee instance directory at $CATALINA_BASE"
-            mkdir -p "$CATALINA_BASE"/{conf,logs,temp,work,webapps}
+            mkdir -p "$CATALINA_BASE"/{conf,logs,temp,work,webapps,lib}
             
             # Copy configuration files
             cp -r ${tomcat-lucee}/conf/* "$CATALINA_BASE/conf/"
-            cp -r ${tomcat-lucee}/webapps/* "$CATALINA_BASE/webapps/"
+            
+            # Copy Tomcat lib files and add Lucee JAR
+            cp -r ${tomcat-lucee}/lib/* "$CATALINA_BASE/lib/"
+            cp ${lucee-jar}/lucee.jar "$CATALINA_BASE/lib/"
+            
+            # Create Lucee server and web directories
+            mkdir -p "$CATALINA_BASE/lucee-server"
+            mkdir -p "$CATALINA_BASE/lucee-web"
+            
+            # Create ROOT webapp with Lucee configuration
+            mkdir -p "$CATALINA_BASE/webapps/ROOT/WEB-INF"
+            
+            # Process web.xml template with correct paths
+            sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
+                -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
+                ${./web.xml} > "$CATALINA_BASE/webapps/ROOT/WEB-INF/web.xml"
+            
+            # Create example.com webapp with Lucee configuration
+            mkdir -p "$CATALINA_BASE/webapps/example.com/WEB-INF"
+            
+            # Process web.xml template with correct paths for example.com
+            sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
+                -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
+                ${./web.xml} > "$CATALINA_BASE/webapps/example.com/WEB-INF/web.xml"
             
             # Set proper permissions
             chmod -R u+w "$CATALINA_BASE"
