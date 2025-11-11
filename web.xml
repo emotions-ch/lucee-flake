@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                    https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+version="5.0"
+metadata-complete="true">
+
+    <display-name>Welcome to Lucee</display-name>
+    <description>Welcome to Lucee</description>
+
+    <!-- ===================================================================== -->
+    <!-- Lucee CFML Servlet - this is the main Lucee servlet                   -->
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <servlet id="Lucee">
+        <description>Lucee CFML Engine</description>
+        <servlet-name>CFMLServlet</servlet-name>
+        <servlet-class>lucee.loader.servlet.CFMLServlet</servlet-class>
+        <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <!-- to specify the location of the Lucee Server config and libraries,   -->
+        <!-- uncomment the init-param below.  make sure that the param-value     -->
+        <!-- points to a valid folder, and that the process that runs Lucee has  -->
+        <!-- write permissions to that folder.  leave commented for defaults.    -->
+        <!--
+        <init-param>
+            <param-name>lucee-server-root</param-name>
+            <param-value>/var/Lucee/config/server/</param-value>
+            <description>Lucee Server configuration directory (for Server-wide configurations, settings, and libraries)</description>
+        </init-param>
+        !-->
+        <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <!-- to specify the location of the Web Contexts' config and libraries,  -->
+        <!-- uncomment the init-param below.  make sure that the param-value     -->
+        <!-- points to a valid folder, and that the process that runs Lucee has  -->
+        <!-- write permissions to that folder.  the {web-context-label} can be   -->
+        <!-- set in Lucee Server Admin homepage.  leave commented for defaults.  -->
+        <!--
+        <init-param>
+            <param-name>lucee-web-directory</param-name>
+            <param-value>/var/Lucee/config/web/{web-context-label}/</param-value>
+            <description>Lucee Web Directory (for Website-specific configurations, settings, and libraries)</description>
+        </init-param>
+        !-->
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>CFMLServlet</servlet-name>
+        <url-pattern>*.cfc</url-pattern>
+        <url-pattern>*.cfm</url-pattern>
+        <url-pattern>*.cfml</url-pattern>
+        <url-pattern>/index.cfc/*</url-pattern>
+        <url-pattern>/index.cfm/*</url-pattern>
+        <url-pattern>/index.cfml/*</url-pattern>
+        <!-- url-pattern>*.cfm/*</url-pattern !-->
+        <!-- url-pattern>*.cfml/*</url-pattern !-->
+        <!-- url-pattern>*.cfc/*</url-pattern !-->
+        <!-- url-pattern>*.htm</url-pattern !-->
+        <!-- url-pattern>*.jsp</url-pattern !-->
+    </servlet-mapping>
+
+    <!-- ===================================================================== -->
+    <!-- Lucee REST Servlet - handles Lucee's RESTful web services             -->
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <servlet id="RESTServlet">
+        <description>Lucee Servlet for RESTful services</description>
+        <servlet-name>RESTServlet</servlet-name>
+        <servlet-class>lucee.loader.servlet.RestServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>RESTServlet</servlet-name>
+        <url-pattern>/rest/*</url-pattern>
+    </servlet-mapping>
+
+</web-app>
