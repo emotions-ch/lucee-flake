@@ -7,7 +7,7 @@ A complete Lucee CFML engine setup with Apache Tomcat, packaged as a Nix flake f
 ### Option 1: Initialize and Start
 ```bash
 # Clone the repository
-git clone <this-repo>
+git clone https://github.com/emotions-ch/lucee-flake.git
 cd lucee-flake
 
 # Initialize Lucee instance directory
@@ -19,7 +19,7 @@ nix run .#start
 
 ### Option 2: One-Step Start
 ```bash
-nix run github:yourusername/lucee-flake
+nix run github:emotions-ch/lucee-flake
 ```
 
 ### Option 3: Development Environment
