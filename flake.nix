@@ -136,6 +136,7 @@
             startScript
             stopScript
             initScript
+            zsh
           ];
 
           shellHook = ''
@@ -151,6 +152,7 @@
             echo "  Java home: ${pkgs.openjdk11}"
             echo ""
             echo "Quick start: init-lucee && start-lucee"
+            exec zsh
           '';
         };
 
