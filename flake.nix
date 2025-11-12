@@ -10,13 +10,14 @@
   flake-utils.lib.eachDefaultSystem (system:
   let
     pkgs = nixpkgs.legacyPackages.${system};
+    java = pkgs.openjdk25;
 
     # Lucee JAR
     lucee-jar = pkgs.stdenv.mkDerivation {
-      name = "lucee-5.3.6.61.jar";
+      name = "lucee-7.0.0.395.jar";
       src = pkgs.fetchurl {
-        url = "https://cdn.lucee.org/lucee-5.3.6.61.jar";
-        sha256 = "sha256-n4ok9YgOhH7+3V45VZMgvxuoqfLfrpEDfZwWTTMBZ3g=";
+        url = "https://cdn.lucee.org/${lucee-jar.name}";
+        sha256 = "sha256-H5S1nWj0sRSXiuwBacKNb+6gN7JQ7njjZMjPh+c90wE=";
       };
       dontUnpack = true;
       installPhase = ''
@@ -26,13 +27,10 @@
     };
 
     # Custom Tomcat with Lucee
-    tomcat-lucee = pkgs.tomcat9.overrideAttrs (oldAttrs: {
+    tomcat-lucee = pkgs.tomcat11.overrideAttrs (oldAttrs: {
       postInstall = (oldAttrs.postInstall or "") + ''
         # Copy Lucee JAR to lib folder
         cp ${lucee-jar}/lucee.jar $out/lib/
-
-        # Copy Tomcat server configuration (from ./server.xml)
-        cp ${./server.xml} $out/conf/server.xml
       '';
     });
 
@@ -40,7 +38,7 @@
     startScript = pkgs.writeShellScriptBin "start-lucee" ''
       export CATALINA_HOME=${tomcat-lucee}
       export CATALINA_BASE=''${CATALINA_BASE:-./lucee-instance}
-      export JAVA_HOME=${pkgs.openjdk11}
+      export JAVA_HOME=${java}
 
       # Ensure Lucee JAR is in classpath by using local lib directory
       export CLASSPATH="$CATALINA_BASE/lib/*:$CATALINA_HOME/lib/*"
@@ -54,7 +52,6 @@
 
       echo "Starting Lucee with Tomcat..."
       echo "🌐 Main site: http://localhost:8080"
-      echo "🌐 Example site: http://localhost:8080 (with Host header: example.com)"
       echo "📁 Instance directory: $CATALINA_BASE"
       echo "Press Ctrl+C to stop"
 
@@ -100,19 +97,6 @@
         # Create ROOT webapp with Lucee configuration
         mkdir -p "$CATALINA_BASE/webapps/ROOT/WEB-INF"
 
-        # Process web.xml template with correct paths
-        sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
-            -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
-            ${./web.xml} > "$CATALINA_BASE/webapps/ROOT/WEB-INF/web.xml"
-
-        # Create example.com webapp with Lucee configuration
-        mkdir -p "$CATALINA_BASE/webapps/example.com/WEB-INF"
-
-        # Process web.xml template with correct paths for example.com
-        sed -e "s|{lucee-server}|$CATALINA_BASE/lucee-server|g" \
-            -e "s|{lucee-web}|$CATALINA_BASE/lucee-web|g" \
-            ${./web.xml} > "$CATALINA_BASE/webapps/example.com/WEB-INF/web.xml"
-
         # Set proper permissions
         chmod -R u+w "$CATALINA_BASE"
 
@@ -132,7 +116,7 @@
     devShell = pkgs.mkShell {
       buildInputs = with pkgs; [
         tomcat-lucee
-        openjdk11
+        java
         startScript
         stopScript
         initScript
@@ -149,7 +133,7 @@
         echo ""
         echo "Configuration:"
         echo "  Tomcat home: ${tomcat-lucee}"
-        echo "  Java home: ${pkgs.openjdk11}"
+        echo "  Java home: ${java}"
         echo ""
         echo "Quick start: init-lucee && start-lucee"
         exec zsh
