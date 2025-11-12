@@ -1,6 +1,12 @@
-steps:
-  - uses: actions/checkout@v4
-  - uses: DeterminateSystems/nix-installer-action@main
-  - uses: spotdemo4/nix-flake-check-action@v1
-    with:
-      args: -L --keep-going
+name: test
+on: [push, workflow_dispatch]
+
+jobs:
+  check-flake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: spotdemo4/nix-flake-check-action@v1
+        with:
+          args: -L --keep-going
