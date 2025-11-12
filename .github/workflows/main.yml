@@ -1,0 +1,6 @@
+steps:
+  - uses: actions/checkout@v4
+  - uses: DeterminateSystems/nix-installer-action@main
+  - uses: spotdemo4/nix-flake-check-action@v1
+    with:
+      args: -L --keep-going
